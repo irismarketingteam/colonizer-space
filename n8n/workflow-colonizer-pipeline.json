@@ -45,7 +45,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"source_url\": \"{{ $json.link }}\",\n  \"source_title\": \"{{ $json.title }}\",\n  \"source_domain\": \"{{ $json.source }}\",\n  \"status\": \"discovered\"\n}",
+        "jsonBody": "={{ JSON.stringify({ source_url: $json.link, source_title: $json.title, source_domain: $json.source, status: 'discovered' }) }}",
         "options": {}
       },
       "id": "log-discovery",
