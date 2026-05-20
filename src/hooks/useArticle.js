@@ -25,9 +25,8 @@ export function useArticle(section, slug) {
         .eq('status', 'published')
         .single()
 
-      setArticle(data)
-
       if (data) {
+        setArticle(data)
         const { data: rel } = await supabase
           .from('articles')
           .select('*')
@@ -37,7 +36,11 @@ export function useArticle(section, slug) {
           .order('published_at', { ascending: false })
           .limit(3)
 
-        setRelated(rel || [])
+        setRelated(rel?.length ? rel : SEED_ARTICLES.filter((a) => a.section === section && a.slug !== slug).slice(0, 3))
+      } else {
+        const found = SEED_ARTICLES.find((a) => a.section === section && a.slug === slug)
+        setArticle(found || null)
+        setRelated(SEED_ARTICLES.filter((a) => a.section === section && a.slug !== slug).slice(0, 3))
       }
       setLoading(false)
     }

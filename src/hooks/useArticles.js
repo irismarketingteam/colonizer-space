@@ -2,6 +2,21 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { SEED_ARTICLES } from '../lib/seed'
 
+function seedFallback(section, limit) {
+  let data = SEED_ARTICLES
+  if (section) data = data.filter((a) => a.section === section)
+  return data.slice(0, limit)
+}
+
+function seedGrouped(limit) {
+  const grouped = {}
+  for (const a of SEED_ARTICLES) {
+    if (!grouped[a.section]) grouped[a.section] = []
+    if (grouped[a.section].length < limit) grouped[a.section].push(a)
+  }
+  return grouped
+}
+
 export function useArticles(section = null, limit = 20) {
   const [articles, setArticles] = useState([])
   const [loading, setLoading] = useState(true)
@@ -9,9 +24,7 @@ export function useArticles(section = null, limit = 20) {
   useEffect(() => {
     async function fetch() {
       if (!supabase) {
-        let data = SEED_ARTICLES
-        if (section) data = data.filter((a) => a.section === section)
-        setArticles(data.slice(0, limit))
+        setArticles(seedFallback(section, limit))
         setLoading(false)
         return
       }
@@ -27,7 +40,8 @@ export function useArticles(section = null, limit = 20) {
       if (section) query = query.eq('section', section)
 
       const { data } = await query
-      setArticles(data || [])
+      const results = data?.length ? data : seedFallback(section, limit)
+      setArticles(results)
       setLoading(false)
     }
     fetch()
@@ -43,12 +57,7 @@ export function useLatestBySection(limit = 4) {
   useEffect(() => {
     async function fetch() {
       if (!supabase) {
-        const grouped = {}
-        for (const a of SEED_ARTICLES) {
-          if (!grouped[a.section]) grouped[a.section] = []
-          if (grouped[a.section].length < limit) grouped[a.section].push(a)
-        }
-        setSections(grouped)
+        setSections(seedGrouped(limit))
         setLoading(false)
         return
       }
@@ -61,12 +70,16 @@ export function useLatestBySection(limit = 4) {
         .order('published_at', { ascending: false })
         .limit(100)
 
-      const grouped = {}
-      for (const a of data || []) {
-        if (!grouped[a.section]) grouped[a.section] = []
-        if (grouped[a.section].length < limit) grouped[a.section].push(a)
+      if (data?.length) {
+        const grouped = {}
+        for (const a of data) {
+          if (!grouped[a.section]) grouped[a.section] = []
+          if (grouped[a.section].length < limit) grouped[a.section].push(a)
+        }
+        setSections(grouped)
+      } else {
+        setSections(seedGrouped(limit))
       }
-      setSections(grouped)
       setLoading(false)
     }
     fetch()

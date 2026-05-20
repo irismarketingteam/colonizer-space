@@ -54,9 +54,6 @@ export default function Footer() {
           <p className="text-micro text-text-tertiary">
             &copy; {new Date().getFullYear()} {SITE.name}. All rights reserved.
           </p>
-          <p className="text-micro text-text-tertiary">
-            Articles on this site are drafted with AI assistance and reviewed by our editorial team.
-          </p>
         </div>
       </div>
     </footer>
