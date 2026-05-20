@@ -1,0 +1,416 @@
+{
+  "name": "Colonizer — Content Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 30 }]
+        }
+      },
+      "id": "scout-trigger",
+      "name": "Every 30 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "id": "fetch-rss",
+      "name": "Fetch RSS Feed",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Flatten all feed items, tag with source, filter by age\nconst MAX_AGE_HOURS = 48;\nconst cutoff = Date.now() - (MAX_AGE_HOURS * 60 * 60 * 1000);\n\nconst items = [];\nfor (const item of $input.all()) {\n  const pubDate = new Date(item.json.pubDate || item.json.isoDate || item.json.date);\n  if (pubDate.getTime() > cutoff) {\n    items.push({\n      json: {\n        title: item.json.title,\n        link: item.json.link,\n        pubDate: pubDate.toISOString(),\n        source: item.json._feedName || 'unknown',\n        snippet: (item.json.contentSnippet || item.json.content || '').substring(0, 500)\n      }\n    });\n  }\n}\n\nreturn items;"
+      },
+      "id": "parse-items",
+      "name": "Parse & Filter Age",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://colonizer.space/api/pipeline",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{ $env.PIPELINE_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "source_url", "value": "={{ $json.link }}" },
+            { "name": "source_title", "value": "={{ $json.title }}" },
+            { "name": "source_domain", "value": "={{ $json.source }}" },
+            { "name": "status", "value": "discovered" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "log-discovery",
+      "name": "Log Discovery",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 300],
+      "notes": "POST to pipeline tracking — logs each discovered story"
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "{{ $env.ANTHROPIC_API_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 1024,\n  \"system\": \"You are the editorial filter for colonizer.space, a publication focused on humans living and working in space. Score each story 0.0–1.0 for relevance.\\n\\nSCORE HIGH (0.7–1.0):\\n- Space station construction/operations/commercial stations\\n- Lunar/Mars surface habitat design, construction, ISRU\\n- Space tourism milestones (bookings, flights, hotels)\\n- Launch vehicle developments directly enabling colonization\\n- In-space manufacturing, data centers, infrastructure\\n- Space economy: funding, contracts, commercial milestones\\n- Policy/regulation directly affecting commercial space settlement\\n- Life support, radiation protection, closed-loop systems\\n\\nSCORE LOW (0.0–0.3):\\n- Pure astronomy/astrophysics with no settlement angle\\n- Earth-observation satellite launches (routine)\\n- Military/classified programs (unless dual-use)\\n\\nSCORE MEDIUM (0.4–0.6):\\n- Rocket launches (routine but from key players)\\n- NASA budget/policy (indirect enabler)\\n\\nReturn JSON: { \\\"score\\\": 0.85, \\\"reasoning\\\": \\\"...\\\", \\\"suggested_section\\\": \\\"moon|mars|orbit|rockets|tech|economy|players\\\", \\\"suggested_angle\\\": \\\"brief phrase\\\" }\",\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Score this story for colonizer.space relevance:\\n\\nTitle: {{ $json.title }}\\nSource: {{ $json.source }}\\nURL: {{ $json.link }}\\nSnippet: {{ $json.snippet }}\"\n  }]\n}",
+        "options": { "timeout": 30000 }
+      },
+      "id": "filter-agent",
+      "name": "Filter Agent (Claude)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 300],
+      "notes": "Claude scores relevance 0-1. Stories >= 0.6 proceed to writing."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Claude's filter response and check score threshold\nconst MIN_SCORE = 0.6;\n\nconst response = $input.first().json;\nconst content = response.content?.[0]?.text || '{}';\n\nlet parsed;\ntry {\n  // Extract JSON from response (may be wrapped in markdown code block)\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);\n} catch (e) {\n  parsed = { score: 0, reasoning: 'Failed to parse filter response' };\n}\n\nreturn [{\n  json: {\n    ...parsed,\n    original_title: $('Log Discovery').first().json.source_title,\n    original_url: $('Log Discovery').first().json.source_url,\n    pipeline_run_id: $('Log Discovery').first().json.id,\n    passes_filter: parsed.score >= MIN_SCORE\n  }\n}];"
+      },
+      "id": "parse-filter",
+      "name": "Parse Filter Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            { "value1": "={{ $json.passes_filter }}", "value2": true }
+          ]
+        }
+      },
+      "id": "score-gate",
+      "name": "Score >= 0.6?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1540, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://colonizer.space/api/pipeline",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{ $env.PIPELINE_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"id\": \"{{ $json.pipeline_run_id }}\",\n  \"status\": \"filtered_out\",\n  \"relevance_score\": {{ $json.score }},\n  \"filter_reasoning\": \"{{ $json.reasoning }}\"\n}",
+        "options": {},
+        "method": "PATCH"
+      },
+      "id": "log-filtered-out",
+      "name": "Log Filtered Out",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1760, 500],
+      "notes": "Story didn't meet relevance threshold — log and stop"
+    },
+    {
+      "parameters": {
+        "url": "https://colonizer.space/api/pipeline",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{ $env.PIPELINE_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"id\": \"{{ $json.pipeline_run_id }}\",\n  \"status\": \"drafting\",\n  \"relevance_score\": {{ $json.score }},\n  \"filter_reasoning\": \"{{ $json.reasoning }}\"\n}",
+        "options": {},
+        "method": "PATCH"
+      },
+      "id": "log-drafting",
+      "name": "Log → Drafting",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1760, 100]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.original_url }}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "fetch-source",
+      "name": "Fetch Source Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1980, 100],
+      "notes": "Fetches the full source article for the writer agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract text from HTML source page\nconst html = $input.first().json.data || $input.first().json.body || '';\n\n// Strip HTML tags, get text content\nconst text = html\n  .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '')\n  .replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .substring(0, 8000);\n\nreturn [{\n  json: {\n    source_text: text,\n    original_url: $('Parse Filter Score').first().json.original_url,\n    original_title: $('Parse Filter Score').first().json.original_title,\n    suggested_section: $('Parse Filter Score').first().json.suggested_section,\n    suggested_angle: $('Parse Filter Score').first().json.suggested_angle,\n    pipeline_run_id: $('Parse Filter Score').first().json.pipeline_run_id\n  }\n}];"
+      },
+      "id": "extract-text",
+      "name": "Extract Source Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2200, 100]
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "{{ $env.ANTHROPIC_API_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 4096,\n  \"system\": \"You are the staff writer for colonizer.space.\\n\\nVOICE: Authoritative, technical, forward-leaning. You write like a Bloomberg space-desk reporter with an engineering background. No hype words. No hedging. State facts. Analyze implications. Be specific about timelines, numbers, players.\\n\\nSTRUCTURE:\\n- Headline: Declarative, specific, 6–12 words. No clickbait.\\n- Subtitle: One sentence expanding the headline.\\n- Lede: The news, first sentence. What happened, who did it, why it matters.\\n- Context: 2–3 paragraphs of background. What preceded this. Where it fits.\\n- Analysis: 2–3 paragraphs. What this means for the colonization timeline. What it enables or blocks. Who benefits.\\n- Forward look: 1 paragraph. What to watch next.\\n\\nLENGTH: 600–1200 words depending on story significance.\\n\\nOUTPUT FORMAT (strict JSON, no markdown wrapping):\\n{\\n  \\\"title\\\": \\\"...\\\",\\n  \\\"subtitle\\\": \\\"...\\\",\\n  \\\"section\\\": \\\"moon|mars|orbit|rockets|tech|economy|players\\\",\\n  \\\"body_md\\\": \\\"... (full markdown article) ...\\\",\\n  \\\"excerpt\\\": \\\"... (160 chars for meta description) ...\\\",\\n  \\\"tags\\\": [\\\"tag1\\\", \\\"tag2\\\"],\\n  \\\"suggested_slug\\\": \\\"slug-here\\\",\\n  \\\"reading_time_min\\\": 5,\\n  \\\"source_urls\\\": [\\\"https://...\\\"]\\n}\",\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Write a colonizer.space article based on this source material.\\n\\nSource title: {{ $json.original_title }}\\nSource URL: {{ $json.original_url }}\\nSuggested section: {{ $json.suggested_section }}\\nSuggested angle: {{ $json.suggested_angle }}\\n\\nSource text:\\n{{ $json.source_text }}\"\n  }]\n}",
+        "options": { "timeout": 60000 }
+      },
+      "id": "writer-agent",
+      "name": "Writer Agent (Claude)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2420, 100],
+      "notes": "Claude writes the full article from source material"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse writer output\nconst response = $input.first().json;\nconst content = response.content?.[0]?.text || '{}';\n\nlet article;\ntry {\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  article = JSON.parse(jsonMatch ? jsonMatch[0] : content);\n} catch (e) {\n  throw new Error('Failed to parse writer output: ' + e.message);\n}\n\nreturn [{\n  json: {\n    ...article,\n    pipeline_run_id: $('Extract Source Text').first().json.pipeline_run_id\n  }\n}];"
+      },
+      "id": "parse-draft",
+      "name": "Parse Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2640, 100]
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "{{ $env.ANTHROPIC_API_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 4096,\n  \"system\": \"You are the senior editor at colonizer.space. Review and polish this draft.\\n\\nCHECK:\\n1. Factual claims match source material (source URLs provided)\\n2. No hallucinated quotes, dates, numbers, or names\\n3. Headline is specific and declarative\\n4. Lede delivers the news in sentence one\\n5. No filler phrases: \\\"it remains to be seen\\\", \\\"only time will tell\\\", \\\"in a move that could\\\", \\\"exciting development\\\"\\n6. Technical terms used correctly\\n7. SEO: title contains primary keyword, excerpt is compelling\\n8. Reading time estimate is accurate (avg 238 wpm)\\n\\nOUTPUT: Return the complete revised article in the same JSON format. Add an \\\"editor_notes\\\" field with any flags for human review. Set status to \\\"review\\\" if significant issues found, \\\"scheduled\\\" if clean.\",\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Edit this article draft:\\n\\n{{ JSON.stringify($json) }}\"\n  }]\n}",
+        "options": { "timeout": 60000 }
+      },
+      "id": "editor-agent",
+      "name": "Editor Agent (Claude)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2860, 100],
+      "notes": "Claude reviews, polishes, fact-checks the draft"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse editor output and prepare for publishing\nconst response = $input.first().json;\nconst content = response.content?.[0]?.text || '{}';\n\nlet article;\ntry {\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  article = JSON.parse(jsonMatch ? jsonMatch[0] : content);\n} catch (e) {\n  throw new Error('Failed to parse editor output: ' + e.message);\n}\n\n// Use editor's status recommendation or default to review\nconst status = article.status === 'scheduled' ? 'published' : 'review';\n\nreturn [{\n  json: {\n    title: article.title,\n    subtitle: article.subtitle,\n    section: article.section,\n    body_md: article.body_md,\n    excerpt: article.excerpt,\n    tags: article.tags || [],\n    slug: article.suggested_slug || article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),\n    reading_time_min: article.reading_time_min,\n    source_urls: article.source_urls || [],\n    status: status,\n    pipeline_run_id: $('Parse Draft').first().json.pipeline_run_id,\n    editor_notes: article.editor_notes || null\n  }\n}];"
+      },
+      "id": "parse-edited",
+      "name": "Parse Edited Article",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3080, 100]
+    },
+    {
+      "parameters": {
+        "url": "https://api.unsplash.com/search/photos",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "query", "value": "={{ $json.tags.slice(0,2).join(' ') }} space" },
+            { "name": "orientation", "value": "landscape" },
+            { "name": "per_page", "value": "1" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Client-ID {{ $env.UNSPLASH_ACCESS_KEY }}" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "id": "unsplash-cover",
+      "name": "Unsplash Cover Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3300, 100],
+      "notes": "Sources a cover image from Unsplash based on article tags"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge Unsplash result with article data\nconst article = $('Parse Edited Article').first().json;\nconst unsplash = $input.first().json;\n\nconst photo = unsplash.results?.[0];\n\nif (photo) {\n  article.cover_image_url = photo.urls?.regular || photo.urls?.full;\n  article.cover_image_alt = photo.alt_description || article.title;\n  article.cover_image_credit = `Photo by ${photo.user?.name} on Unsplash`;\n}\n\nreturn [{ json: article }];"
+      },
+      "id": "merge-cover",
+      "name": "Merge Cover Image",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3520, 100]
+    },
+    {
+      "parameters": {
+        "url": "https://colonizer.space/api/publish",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{ $env.PIPELINE_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "publish",
+      "name": "Publish to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3740, 100],
+      "notes": "Inserts the finished article via the publish API"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build the RSS feed list for iteration\nconst feeds = [\n  { url: 'https://spacenews.com/feed/', name: 'SpaceNews' },\n  { url: 'https://arstechnica.com/space/feed/', name: 'Ars Technica Space' },\n  { url: 'https://www.nasaspaceflight.com/feed/', name: 'NASASpaceFlight' },\n  { url: 'https://www.space.com/feeds/all', name: 'Space.com' },\n  { url: 'https://spacepolicyonline.com/feed/', name: 'Space Policy Online' },\n  { url: 'https://europeanspaceflight.com/feed/', name: 'European Spaceflight' },\n  { url: 'https://payloadspace.com/feed/', name: 'Payload Space' },\n  { url: 'https://blogs.nasa.gov/artemis/feed/', name: 'NASA Artemis Blog' },\n  { url: 'https://blogs.nasa.gov/spacestation/feed/', name: 'NASA ISS Blog' },\n  { url: 'https://www.cnbc.com/space/rss', name: 'CNBC Space' }\n];\n\nreturn feeds.map(f => ({ json: f }));"
+      },
+      "id": "feed-list",
+      "name": "RSS Feed List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Deduplication: check if source_url already exists in pipeline_runs\nconst url = $input.first().json.link;\nconst checkUrl = `{{ $env.SUPABASE_URL }}/rest/v1/pipeline_runs?source_url=eq.${encodeURIComponent(url)}&select=id&limit=1`;\n\n// We'll use a simple flag — the HTTP dedup check happens in the next node\nreturn [{ json: { ...$input.first().json, needs_dedup_check: true } }];"
+      },
+      "id": "dedup-prep",
+      "name": "Prepare Dedup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 100],
+      "notes": "Placeholder — full dedup via Supabase check can be added"
+    }
+  ],
+  "connections": {
+    "Every 30 min": {
+      "main": [
+        [{ "node": "RSS Feed List", "type": "main", "index": 0 }]
+      ]
+    },
+    "RSS Feed List": {
+      "main": [
+        [{ "node": "Fetch RSS Feed", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch RSS Feed": {
+      "main": [
+        [{ "node": "Parse & Filter Age", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse & Filter Age": {
+      "main": [
+        [{ "node": "Log Discovery", "type": "main", "index": 0 }]
+      ]
+    },
+    "Log Discovery": {
+      "main": [
+        [{ "node": "Filter Agent (Claude)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Filter Agent (Claude)": {
+      "main": [
+        [{ "node": "Parse Filter Score", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Filter Score": {
+      "main": [
+        [{ "node": "Score >= 0.6?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Score >= 0.6?": {
+      "main": [
+        [{ "node": "Log → Drafting", "type": "main", "index": 0 }],
+        [{ "node": "Log Filtered Out", "type": "main", "index": 0 }]
+      ]
+    },
+    "Log → Drafting": {
+      "main": [
+        [{ "node": "Fetch Source Page", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Source Page": {
+      "main": [
+        [{ "node": "Extract Source Text", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extract Source Text": {
+      "main": [
+        [{ "node": "Writer Agent (Claude)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Writer Agent (Claude)": {
+      "main": [
+        [{ "node": "Parse Draft", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Draft": {
+      "main": [
+        [{ "node": "Editor Agent (Claude)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Editor Agent (Claude)": {
+      "main": [
+        [{ "node": "Parse Edited Article", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Edited Article": {
+      "main": [
+        [{ "node": "Unsplash Cover Image", "type": "main", "index": 0 }]
+      ]
+    },
+    "Unsplash Cover Image": {
+      "main": [
+        [{ "node": "Merge Cover Image", "type": "main", "index": 0 }]
+      ]
+    },
+    "Merge Cover Image": {
+      "main": [
+        [{ "node": "Publish to Supabase", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    { "name": "colonizer" },
+    { "name": "content-pipeline" }
+  ],
+  "meta": {
+    "notes": "Colonizer.space content pipeline: Scout (RSS) → Filter (Claude) → Write (Claude) → Edit (Claude) → Cover (Unsplash) → Publish (Supabase). Runs every 30 min. Requires env vars: PIPELINE_SECRET, ANTHROPIC_API_KEY, UNSPLASH_ACCESS_KEY, SUPABASE_URL."
+  }
+}

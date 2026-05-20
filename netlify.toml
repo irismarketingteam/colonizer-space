@@ -31,6 +31,16 @@
   status = 200
 
 [[redirects]]
+  from = "/api/publish"
+  to = "/.netlify/functions/api-publish"
+  status = 200
+
+[[redirects]]
+  from = "/api/pipeline"
+  to = "/.netlify/functions/api-pipeline"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

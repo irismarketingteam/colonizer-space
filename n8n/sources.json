@@ -1,0 +1,96 @@
+{
+  "description": "RSS feeds and sources for the colonizer.space content pipeline scout",
+  "feeds": [
+    {
+      "url": "https://spacenews.com/feed/",
+      "name": "SpaceNews",
+      "priority": "high",
+      "sections": ["rockets", "orbit", "economy", "players"]
+    },
+    {
+      "url": "https://arstechnica.com/space/feed/",
+      "name": "Ars Technica Space",
+      "priority": "high",
+      "sections": ["rockets", "tech", "mars", "moon"]
+    },
+    {
+      "url": "https://www.nasaspaceflight.com/feed/",
+      "name": "NASASpaceFlight",
+      "priority": "high",
+      "sections": ["rockets", "orbit", "moon", "mars"]
+    },
+    {
+      "url": "https://www.space.com/feeds/all",
+      "name": "Space.com",
+      "priority": "medium",
+      "sections": ["moon", "mars", "orbit", "tech"]
+    },
+    {
+      "url": "https://spacepolicyonline.com/feed/",
+      "name": "Space Policy Online",
+      "priority": "medium",
+      "sections": ["economy", "players"]
+    },
+    {
+      "url": "https://www.teslarati.com/feed/",
+      "name": "Teslarati",
+      "priority": "medium",
+      "sections": ["rockets", "mars"]
+    },
+    {
+      "url": "https://europeanspaceflight.com/feed/",
+      "name": "European Spaceflight",
+      "priority": "medium",
+      "sections": ["rockets", "orbit", "players"]
+    },
+    {
+      "url": "https://tlpnetwork.com/feed",
+      "name": "The Launch Pad",
+      "priority": "medium",
+      "sections": ["rockets", "economy"]
+    },
+    {
+      "url": "https://payloadspace.com/feed/",
+      "name": "Payload Space",
+      "priority": "high",
+      "sections": ["economy", "players", "orbit"]
+    },
+    {
+      "url": "https://www.thespacereview.com/rss.xml",
+      "name": "The Space Review",
+      "priority": "medium",
+      "sections": ["opinion", "economy", "moon", "mars"]
+    },
+    {
+      "url": "https://blog.ulalaunch.com/feed",
+      "name": "ULA Blog",
+      "priority": "low",
+      "sections": ["rockets"]
+    },
+    {
+      "url": "https://blogs.nasa.gov/artemis/feed/",
+      "name": "NASA Artemis Blog",
+      "priority": "high",
+      "sections": ["moon"]
+    },
+    {
+      "url": "https://blogs.nasa.gov/spacestation/feed/",
+      "name": "NASA ISS Blog",
+      "priority": "medium",
+      "sections": ["orbit"]
+    },
+    {
+      "url": "https://www.cnbc.com/space/rss",
+      "name": "CNBC Space",
+      "priority": "medium",
+      "sections": ["economy", "players"]
+    }
+  ],
+  "scout_config": {
+    "check_interval_minutes": 30,
+    "max_age_hours": 48,
+    "min_relevance_score": 0.6,
+    "max_articles_per_run": 3,
+    "dedup_window_hours": 168
+  }
+}
