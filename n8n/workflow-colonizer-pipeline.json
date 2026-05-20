@@ -40,7 +40,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer {{ $env.PIPELINE_SECRET }}" }
+            { "name": "Authorization", "value": "Bearer YOUR_PIPELINE_SECRET" }
           ]
         },
         "sendBody": true,
@@ -67,7 +67,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-api-key", "value": "{{ $env.ANTHROPIC_API_KEY }}" },
+            { "name": "x-api-key", "value": "YOUR_ANTHROPIC_API_KEY" },
             { "name": "anthropic-version", "value": "2023-06-01" }
           ]
         },
@@ -113,7 +113,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer {{ $env.PIPELINE_SECRET }}" }
+            { "name": "Authorization", "value": "Bearer YOUR_PIPELINE_SECRET" }
           ]
         },
         "sendBody": true,
@@ -135,7 +135,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer {{ $env.PIPELINE_SECRET }}" }
+            { "name": "Authorization", "value": "Bearer YOUR_PIPELINE_SECRET" }
           ]
         },
         "sendBody": true,
@@ -178,7 +178,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-api-key", "value": "{{ $env.ANTHROPIC_API_KEY }}" },
+            { "name": "x-api-key", "value": "YOUR_ANTHROPIC_API_KEY" },
             { "name": "anthropic-version", "value": "2023-06-01" }
           ]
         },
@@ -210,7 +210,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-api-key", "value": "{{ $env.ANTHROPIC_API_KEY }}" },
+            { "name": "x-api-key", "value": "YOUR_ANTHROPIC_API_KEY" },
             { "name": "anthropic-version", "value": "2023-06-01" }
           ]
         },
@@ -250,7 +250,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Client-ID {{ $env.UNSPLASH_ACCESS_KEY }}" }
+            { "name": "Authorization", "value": "Client-ID YOUR_UNSPLASH_ACCESS_KEY" }
           ]
         },
         "options": { "timeout": 10000 }
@@ -278,7 +278,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer {{ $env.PIPELINE_SECRET }}" }
+            { "name": "Authorization", "value": "Bearer YOUR_PIPELINE_SECRET" }
           ]
         },
         "sendBody": true,
@@ -305,7 +305,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Deduplication: check if source_url already exists in pipeline_runs\nconst url = $input.first().json.link;\nconst checkUrl = `{{ $env.SUPABASE_URL }}/rest/v1/pipeline_runs?source_url=eq.${encodeURIComponent(url)}&select=id&limit=1`;\n\n// We'll use a simple flag — the HTTP dedup check happens in the next node\nreturn [{ json: { ...$input.first().json, needs_dedup_check: true } }];"
+        "jsCode": "// Deduplication: check if source_url already exists in pipeline_runs\nconst url = $input.first().json.link;\nconst checkUrl = `https://gyggbhepbfocvaeyemuu.supabase.co/rest/v1/pipeline_runs?source_url=eq.${encodeURIComponent(url)}&select=id&limit=1`;\n\n// We'll use a simple flag — the HTTP dedup check happens in the next node\nreturn [{ json: { ...$input.first().json, needs_dedup_check: true } }];"
       },
       "id": "dedup-prep",
       "name": "Prepare Dedup",

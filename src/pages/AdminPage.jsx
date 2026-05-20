@@ -2,22 +2,52 @@ import { useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useAuth } from '../hooks/useAuth'
 import { SITE } from '../lib/constants'
+import Dashboard from '../components/admin/Dashboard'
 import ReviewQueue from '../components/admin/ReviewQueue'
+import ArticleList from '../components/admin/ArticleList'
+import ArticleEditor from '../components/admin/ArticleEditor'
 import PipelineMonitor from '../components/admin/PipelineMonitor'
-import PublishControls from '../components/admin/PublishControls'
 
 const TABS = [
-  { id: 'review', label: 'Review Queue' },
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'review', label: 'Review' },
+  { id: 'articles', label: 'Articles' },
   { id: 'pipeline', label: 'Pipeline' },
-  { id: 'publish', label: 'Publish' },
+  { id: 'editor', label: '+ New' },
 ]
 
 export default function AdminPage() {
   const { user, loading, signIn, signOut } = useAuth()
-  const [tab, setTab] = useState('review')
+  const [tab, setTab] = useState('dashboard')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
+  const [editingId, setEditingId] = useState(null)
+  const [articleFilter, setArticleFilter] = useState(null)
+
+  function navigate(tabId, filter) {
+    if (tabId === 'editor') {
+      setEditingId(null)
+    }
+    if (filter) setArticleFilter(filter)
+    else setArticleFilter(null)
+    setTab(tabId)
+  }
+
+  function handleEdit(id) {
+    setEditingId(id)
+    setTab('editor')
+  }
+
+  function handleSave() {
+    setEditingId(null)
+    setTab('articles')
+  }
+
+  function handleCancelEdit() {
+    setEditingId(null)
+    setTab(editingId ? 'articles' : 'dashboard')
+  }
 
   if (loading) {
     return (
@@ -30,9 +60,7 @@ export default function AdminPage() {
   if (!user) {
     return (
       <>
-        <Helmet>
-          <title>Admin — {SITE.name}</title>
-        </Helmet>
+        <Helmet><title>Admin — {SITE.name}</title></Helmet>
         <div className="flex items-center justify-center min-h-[60vh]">
           <form
             onSubmit={async (e) => {
@@ -49,14 +77,14 @@ export default function AdminPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
-              className="w-full px-4 py-3 bg-surface border border-subtle text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent/50"
+              className="admin-input w-full"
             />
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password"
-              className="w-full px-4 py-3 bg-surface border border-subtle text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent/50"
+              className="admin-input w-full"
             />
             <button
               type="submit"
@@ -71,31 +99,36 @@ export default function AdminPage() {
     )
   }
 
+  const activeTab = tab
+
   return (
     <>
-      <Helmet>
-        <title>Admin — {SITE.name}</title>
-      </Helmet>
+      <Helmet><title>Admin — {SITE.name}</title></Helmet>
 
       <div className="py-8 px-[clamp(1rem,3vw,3rem)]">
         <div className="max-w-[90rem] mx-auto">
-          <div className="flex items-center justify-between mb-8">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
             <h1 className="font-display text-h2 text-text-primary">Admin</h1>
-            <button
-              onClick={signOut}
-              className="font-mono text-micro text-text-tertiary hover:text-text-primary transition-colors"
-            >
-              Sign out
-            </button>
+            <div className="flex items-center gap-4">
+              <span className="font-mono text-micro text-text-tertiary hidden sm:block">{user.email}</span>
+              <button
+                onClick={signOut}
+                className="font-mono text-micro text-text-tertiary hover:text-text-primary transition-colors"
+              >
+                Sign out
+              </button>
+            </div>
           </div>
 
-          <div className="flex gap-1 mb-8 border-b border-subtle">
+          {/* Tab bar */}
+          <div className="flex gap-1 mb-8 border-b border-subtle overflow-x-auto">
             {TABS.map((t) => (
               <button
                 key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`px-4 py-2 font-mono text-caption transition-colors border-b-2 -mb-px ${
-                  tab === t.id
+                onClick={() => navigate(t.id)}
+                className={`px-4 py-2 font-mono text-caption whitespace-nowrap transition-colors border-b-2 -mb-px ${
+                  activeTab === t.id
                     ? 'text-accent border-accent'
                     : 'text-text-secondary border-transparent hover:text-text-primary'
                 }`}
@@ -105,9 +138,18 @@ export default function AdminPage() {
             ))}
           </div>
 
-          {tab === 'review' && <ReviewQueue />}
-          {tab === 'pipeline' && <PipelineMonitor />}
-          {tab === 'publish' && <PublishControls />}
+          {/* Tab content */}
+          {activeTab === 'dashboard' && <Dashboard onNavigate={navigate} />}
+          {activeTab === 'review' && <ReviewQueue onEdit={handleEdit} />}
+          {activeTab === 'articles' && <ArticleList initialFilter={articleFilter} onEdit={handleEdit} />}
+          {activeTab === 'pipeline' && <PipelineMonitor />}
+          {activeTab === 'editor' && (
+            <ArticleEditor
+              articleId={editingId}
+              onSave={handleSave}
+              onCancel={handleCancelEdit}
+            />
+          )}
         </div>
       </div>
     </>

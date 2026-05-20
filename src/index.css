@@ -198,4 +198,34 @@
     background: none;
     padding: 0;
   }
+
+  /* Admin form inputs */
+  .admin-input {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    background: var(--color-elevated);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+    font-size: var(--text-caption);
+    transition: border-color 0.15s ease;
+  }
+  .admin-input::placeholder {
+    color: var(--color-text-tertiary);
+  }
+  .admin-input:focus {
+    outline: none;
+    border-color: rgba(59, 130, 246, 0.5);
+  }
+  select.admin-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234A5568' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    padding-right: 2.25rem;
+  }
+  select.admin-input option {
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+  }
 }
