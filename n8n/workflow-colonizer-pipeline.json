@@ -44,14 +44,8 @@
           ]
         },
         "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            { "name": "source_url", "value": "={{ $json.link }}" },
-            { "name": "source_title", "value": "={{ $json.title }}" },
-            { "name": "source_domain", "value": "={{ $json.source }}" },
-            { "name": "status", "value": "discovered" }
-          ]
-        },
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"source_url\": \"{{ $json.link }}\",\n  \"source_title\": \"{{ $json.title }}\",\n  \"source_domain\": \"{{ $json.source }}\",\n  \"status\": \"discovered\"\n}",
         "options": {}
       },
       "id": "log-discovery",
