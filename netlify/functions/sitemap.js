@@ -1,12 +1,16 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
-)
-
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL
+const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY
 const SITE_URL = 'https://colonizer.space'
 const SECTIONS = ['moon', 'mars', 'orbit', 'rockets', 'tech', 'economy', 'players', 'opinion']
+
+async function query(table, params) {
+  const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`)
+  url.search = new URLSearchParams(params).toString()
+  const res = await fetch(url, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+  })
+  return res.json()
+}
 
 function escapeXml(str) {
   if (!str) return ''
@@ -14,13 +18,13 @@ function escapeXml(str) {
 }
 
 export default async () => {
-  const { data: articles } = await supabase
-    .from('articles')
-    .select('slug, section, published_at, updated_at')
-    .eq('status', 'published')
-    .lte('published_at', new Date().toISOString())
-    .order('published_at', { ascending: false })
-    .limit(5000)
+  const articles = await query('articles', {
+    select: 'slug,section,published_at,updated_at',
+    status: 'eq.published',
+    published_at: `lte.${new Date().toISOString()}`,
+    order: 'published_at.desc',
+    limit: '5000',
+  })
 
   const staticPages = [
     { loc: SITE_URL, priority: '1.0', changefreq: 'hourly' },

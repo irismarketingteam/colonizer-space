@@ -1,13 +1,17 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
-)
-
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL
+const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY
 const SITE_URL = 'https://colonizer.space'
 const SITE_NAME = 'Colonizer'
 const SITE_DESC = 'The publication of record for humans living and working beyond Earth.'
+
+async function query(table, params) {
+  const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`)
+  url.search = new URLSearchParams(params).toString()
+  const res = await fetch(url, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+  })
+  return res.json()
+}
 
 function escapeXml(str) {
   if (!str) return ''
@@ -24,19 +28,16 @@ export default async (req) => {
   const sectionMatch = url.pathname.match(/^\/(\w+)\/feed\.xml$/)
   const section = sectionMatch ? sectionMatch[1] : null
 
-  let query = supabase
-    .from('articles')
-    .select('title, slug, section, excerpt, published_at, author, cover_image_url')
-    .eq('status', 'published')
-    .lte('published_at', new Date().toISOString())
-    .order('published_at', { ascending: false })
-    .limit(50)
-
-  if (section) {
-    query = query.eq('section', section)
+  const params = {
+    select: 'title,slug,section,excerpt,published_at,author,cover_image_url',
+    status: 'eq.published',
+    published_at: `lte.${new Date().toISOString()}`,
+    order: 'published_at.desc',
+    limit: '50',
   }
+  if (section) params.section = `eq.${section}`
 
-  const { data: articles } = await query
+  const articles = await query('articles', params)
 
   const channelTitle = section
     ? `${SITE_NAME} — ${section.charAt(0).toUpperCase() + section.slice(1)}`

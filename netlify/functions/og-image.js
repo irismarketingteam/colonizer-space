@@ -1,19 +1,25 @@
-import { createClient } from '@supabase/supabase-js'
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL
+const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
-)
+async function query(table, params) {
+  const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`)
+  url.search = new URLSearchParams(params).toString()
+  const res = await fetch(url, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+  })
+  const data = await res.json()
+  return Array.isArray(data) ? data[0] : data
+}
 
 export default async (req) => {
   const url = new URL(req.url)
   const slug = url.pathname.replace('/og/', '').replace('.png', '')
 
-  const { data: article } = await supabase
-    .from('articles')
-    .select('title, section, excerpt')
-    .eq('slug', slug)
-    .single()
+  const article = await query('articles', {
+    select: 'title,section,excerpt',
+    slug: `eq.${slug}`,
+    limit: '1',
+  })
 
   const title = article?.title || 'Colonizer'
   const section = article?.section?.toUpperCase() || ''
