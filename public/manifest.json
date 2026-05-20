@@ -1,0 +1,16 @@
+{
+  "name": "Colonizer",
+  "short_name": "Colonizer",
+  "description": "The publication of record for humans living and working beyond Earth.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#05070A",
+  "theme_color": "#05070A",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

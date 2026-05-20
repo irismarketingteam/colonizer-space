@@ -1,0 +1,201 @@
+@import "tailwindcss";
+
+@theme {
+  /* Backgrounds */
+  --color-void: #05070A;
+  --color-surface: #0C0F14;
+  --color-elevated: #141820;
+
+  /* Text */
+  --color-text-primary: #E8ECF1;
+  --color-text-secondary: #8B95A5;
+  --color-text-tertiary: #4A5568;
+
+  /* Accent */
+  --color-accent: #3B82F6;
+  --color-accent-hover: #60A5FA;
+
+  /* Signals */
+  --color-signal-live: #10B981;
+  --color-signal-alert: #F59E0B;
+  --color-signal-critical: #EF4444;
+
+  /* Fonts */
+  --font-display: 'Instrument Sans', sans-serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  /* Typography Scale */
+  --text-hero: clamp(2.5rem, 5vw, 4.5rem);
+  --text-h1: clamp(1.75rem, 3.5vw, 2.75rem);
+  --text-h2: clamp(1.25rem, 2.5vw, 1.75rem);
+  --text-h3: clamp(1rem, 1.5vw, 1.25rem);
+  --text-body: 1rem;
+  --text-caption: 0.8125rem;
+  --text-micro: 0.6875rem;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-void);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background-color: rgba(59, 130, 246, 0.3);
+    color: var(--color-text-primary);
+  }
+
+  a {
+    color: var(--color-accent);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  a:hover {
+    color: var(--color-accent-hover);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    line-height: 1.15;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+@layer components {
+  .site-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5rem;
+    max-width: 90rem;
+    margin: 0 auto;
+    padding: 0 clamp(1rem, 3vw, 3rem);
+  }
+
+  .reading-column {
+    max-width: 680px;
+    margin: 0 auto;
+    font-size: 1.125rem;
+    line-height: 1.75;
+  }
+
+  .section-tag {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-accent);
+  }
+
+  .border-subtle {
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .bg-glass {
+    background: rgba(12, 15, 20, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .accent-glow {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+  }
+
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--color-signal-live);
+    animation: pulse-live 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-live {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .article-body h2 {
+    font-family: var(--font-display);
+    font-size: var(--text-h2);
+    font-weight: 600;
+    margin: 2.5rem 0 1rem;
+    color: var(--color-text-primary);
+  }
+
+  .article-body h3 {
+    font-family: var(--font-display);
+    font-size: var(--text-h3);
+    font-weight: 600;
+    margin: 2rem 0 0.75rem;
+    color: var(--color-text-primary);
+  }
+
+  .article-body p {
+    margin: 0 0 1.25rem;
+    color: var(--color-text-primary);
+  }
+
+  .article-body blockquote {
+    border-left: 3px solid var(--color-accent);
+    padding-left: 1.5rem;
+    margin: 2rem 0;
+    color: var(--color-text-secondary);
+    font-style: italic;
+  }
+
+  .article-body ul, .article-body ol {
+    margin: 0 0 1.25rem;
+    padding-left: 1.5rem;
+  }
+
+  .article-body li {
+    margin-bottom: 0.5rem;
+  }
+
+  .article-body a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .article-body img {
+    border-radius: 2px;
+    margin: 2rem 0;
+  }
+
+  .article-body code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    background: var(--color-elevated);
+    padding: 0.15em 0.4em;
+    border-radius: 2px;
+  }
+
+  .article-body pre {
+    background: var(--color-surface);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 1.5rem;
+    overflow-x: auto;
+    margin: 2rem 0;
+    border-radius: 2px;
+  }
+
+  .article-body pre code {
+    background: none;
+    padding: 0;
+  }
+}
