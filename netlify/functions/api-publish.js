@@ -88,6 +88,7 @@ export default async function handler(req) {
     status: body.status || 'review',
     seo_title: body.seo_title || title,
     seo_description: body.seo_description || body.excerpt || null,
+    seo_keyword: body.seo_keyword || null,
     tags: body.tags || [],
     source_urls: body.source_urls || [],
     reading_time_min: body.reading_time_min || Math.ceil((body_md.split(/\s+/).length) / 238),

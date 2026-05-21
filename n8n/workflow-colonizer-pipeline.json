@@ -178,7 +178,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 4096,\n  \"system\": \"You are the staff writer for colonizer.space.\\n\\nVOICE: Authoritative, technical, forward-leaning. You write like a Bloomberg space-desk reporter with an engineering background. No hype words. No hedging. State facts. Analyze implications. Be specific about timelines, numbers, players.\\n\\nSTRUCTURE:\\n- Headline: Declarative, specific, 6–12 words. No clickbait.\\n- Subtitle: One sentence expanding the headline.\\n- Lede: The news, first sentence. What happened, who did it, why it matters.\\n- Context: 2–3 paragraphs of background. What preceded this. Where it fits.\\n- Analysis: 2–3 paragraphs. What this means for the colonization timeline. What it enables or blocks. Who benefits.\\n- Forward look: 1 paragraph. What to watch next.\\n\\nLENGTH: 600–1200 words depending on story significance.\\n\\nOUTPUT FORMAT (strict JSON, no markdown wrapping):\\n{\\n  \\\"title\\\": \\\"...\\\",\\n  \\\"subtitle\\\": \\\"...\\\",\\n  \\\"section\\\": \\\"moon|mars|orbit|rockets|tech|economy|players\\\",\\n  \\\"body_md\\\": \\\"... (full markdown article) ...\\\",\\n  \\\"excerpt\\\": \\\"... (160 chars for meta description) ...\\\",\\n  \\\"tags\\\": [\\\"tag1\\\", \\\"tag2\\\"],\\n  \\\"suggested_slug\\\": \\\"slug-here\\\",\\n  \\\"reading_time_min\\\": 5,\\n  \\\"source_urls\\\": [\\\"https://...\\\"]\\n}\",\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Write a colonizer.space article based on this source material.\\n\\nSource title: {{ $json.original_title }}\\nSource URL: {{ $json.original_url }}\\nSuggested section: {{ $json.suggested_section }}\\nSuggested angle: {{ $json.suggested_angle }}\\n\\nSource text:\\n{{ $json.source_text }}\"\n  }]\n}",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 4096,\n  \"system\": \"You are the staff writer for colonizer.space.\\n\\nVOICE: Authoritative, technical, forward-leaning. You write like a Bloomberg space-desk reporter with an engineering background. No hype words. No hedging. State facts. Analyze implications. Be specific about timelines, numbers, players.\\n\\nSTRUCTURE:\\n- Headline: Declarative, specific, 6–12 words. No clickbait.\\n- Subtitle: One sentence expanding the headline.\\n- Lede: The news, first sentence. What happened, who did it, why it matters.\\n- Context: 2–3 paragraphs of background. What preceded this. Where it fits.\\n- Analysis: 2–3 paragraphs. What this means for the colonization timeline. What it enables or blocks. Who benefits.\\n- Forward look: 1 paragraph. What to watch next.\\n\\nLENGTH: 500–800 words. This is a hard requirement. Count carefully.\\n\\nLINK REQUIREMENTS (mandatory):\\n- Include exactly 1 internal link to a related topic on colonizer.space (format: [anchor text](https://colonizer.space/section/slug)). Pick a section that relates to the story (e.g., https://colonizer.space/rockets, https://colonizer.space/orbit).\\n- Include exactly 1 external link to the original source article being covered. Place it naturally in the context section.\\n\\nSEO:\\n- Identify a primary keyword (2-4 words) the article should target.\\n- Include the keyword in the title, first paragraph, and at least one heading.\\n- Set seo_keyword in the output JSON.\\n\\nOUTPUT FORMAT (strict JSON, no markdown wrapping):\\n{\\n  \\\"title\\\": \\\"...\\\",\\n  \\\"subtitle\\\": \\\"...\\\",\\n  \\\"section\\\": \\\"moon|mars|orbit|rockets|tech|economy|players\\\",\\n  \\\"body_md\\\": \\\"... (full markdown article) ...\\\",\\n  \\\"excerpt\\\": \\\"... (160 chars for meta description) ...\\\",\\n  \\\"tags\\\": [\\\"tag1\\\", \\\"tag2\\\"],\\n  \\\"suggested_slug\\\": \\\"slug-here\\\",\\n  \\\"reading_time_min\\\": 5,\\n  \\\"source_urls\\\": [\\\"https://...\\\"],\\n  \\\"seo_keyword\\\": \\\"primary keyword phrase\\\"\\n}\",\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Write a colonizer.space article based on this source material.\\n\\nSource title: {{ $json.original_title }}\\nSource URL: {{ $json.original_url }}\\nSuggested section: {{ $json.suggested_section }}\\nSuggested angle: {{ $json.suggested_angle }}\\n\\nSource text:\\n{{ $json.source_text }}\"\n  }]\n}",
         "options": { "timeout": 60000 }
       },
       "id": "writer-agent",
@@ -210,7 +210,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 4096,\n  \"system\": \"You are the senior editor at colonizer.space. Review and polish this draft.\\n\\nCHECK:\\n1. Factual claims match source material (source URLs provided)\\n2. No hallucinated quotes, dates, numbers, or names\\n3. Headline is specific and declarative\\n4. Lede delivers the news in sentence one\\n5. No filler phrases: \\\"it remains to be seen\\\", \\\"only time will tell\\\", \\\"in a move that could\\\", \\\"exciting development\\\"\\n6. Technical terms used correctly\\n7. SEO: title contains primary keyword, excerpt is compelling\\n8. Reading time estimate is accurate (avg 238 wpm)\\n\\nOUTPUT: Return the complete revised article in the same JSON format. Add an \\\"editor_notes\\\" field with any flags for human review. Set status to \\\"review\\\" if significant issues found, \\\"scheduled\\\" if clean.\",\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Edit this article draft:\\n\\n{{ JSON.stringify($json) }}\"\n  }]\n}",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 4096,\n  \"system\": \"You are the senior editor at colonizer.space. Review and polish this draft.\\n\\nCHECK:\\n1. Factual claims match source material (source URLs provided)\\n2. No hallucinated quotes, dates, numbers, or names\\n3. Headline is specific and declarative\\n4. Lede delivers the news in sentence one\\n5. No filler phrases: \\\"it remains to be seen\\\", \\\"only time will tell\\\", \\\"in a move that could\\\", \\\"exciting development\\\"\\n6. Technical terms used correctly\\n7. SEO: title contains the seo_keyword, excerpt is compelling, keyword appears in first paragraph and at least one heading\\n8. Reading time estimate is accurate (avg 238 wpm)\\n\\nQUALITY GATES (must pass or flag for review):\\n- Word count MUST be 500-800. If outside range, trim or expand.\\n- MUST contain exactly 1 internal link to colonizer.space (any section page or article). If missing, add one.\\n- MUST contain exactly 1 external link to the source article. If missing, add one.\\n- seo_keyword must be set and present in title + body.\\n\\nOUTPUT: Return the complete revised article in the same JSON format. Include seo_keyword field. Add an \\\"editor_notes\\\" field with any flags for human review. Set status to \\\"review\\\" if significant issues found, \\\"scheduled\\\" if clean.\",\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Edit this article draft:\\n\\n{{ JSON.stringify($json) }}\"\n  }]\n}",
         "options": { "timeout": 60000 }
       },
       "id": "editor-agent",
@@ -222,13 +222,56 @@
     },
     {
       "parameters": {
-        "jsCode": "// Parse editor output and prepare for publishing\nconst response = $input.first().json;\nconst content = response.content?.[0]?.text || '{}';\n\nlet article;\ntry {\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  article = JSON.parse(jsonMatch ? jsonMatch[0] : content);\n} catch (e) {\n  throw new Error('Failed to parse editor output: ' + e.message);\n}\n\n// Use editor's status recommendation or default to review\nconst status = article.status === 'scheduled' ? 'published' : 'review';\n\nreturn [{\n  json: {\n    title: article.title,\n    subtitle: article.subtitle,\n    section: article.section,\n    body_md: article.body_md,\n    excerpt: article.excerpt,\n    tags: article.tags || [],\n    slug: article.suggested_slug || article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),\n    reading_time_min: article.reading_time_min,\n    source_urls: article.source_urls || [],\n    status: status,\n    pipeline_run_id: $('Parse Draft').first().json.pipeline_run_id,\n    editor_notes: article.editor_notes || null\n  }\n}];"
+        "jsCode": "// Parse editor output and prepare for publishing\nconst response = $input.first().json;\nconst content = response.content?.[0]?.text || '{}';\n\nlet article;\ntry {\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  article = JSON.parse(jsonMatch ? jsonMatch[0] : content);\n} catch (e) {\n  throw new Error('Failed to parse editor output: ' + e.message);\n}\n\n// Use editor's status recommendation or default to review\nconst status = article.status === 'scheduled' ? 'published' : 'review';\n\nreturn [{\n  json: {\n    title: article.title,\n    subtitle: article.subtitle,\n    section: article.section,\n    body_md: article.body_md,\n    excerpt: article.excerpt,\n    tags: article.tags || [],\n    slug: article.suggested_slug || article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),\n    reading_time_min: article.reading_time_min,\n    source_urls: article.source_urls || [],\n    seo_keyword: article.seo_keyword || null,\n    status: status,\n    pipeline_run_id: $('Parse Draft').first().json.pipeline_run_id,\n    editor_notes: article.editor_notes || null\n  }\n}];"
       },
       "id": "parse-edited",
       "name": "Parse Edited Article",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [3080, 100]
+    },
+    {
+      "parameters": {
+        "url": "=https://gyggbhepbfocvaeyemuu.supabase.co/rest/v1/press_photos?tags=ov.{{{ $json.tags.slice(0,3).join(',') }}}&order=created_at.desc&limit=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "YOUR_SUPABASE_ANON_KEY" }
+          ]
+        },
+        "options": { "timeout": 5000 }
+      },
+      "id": "press-photo-check",
+      "name": "Check Press Photos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3300, 100],
+      "notes": "Checks press_photos table for a matching brand image before falling back to Unsplash",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// If press photo found, use it. Otherwise signal to use Unsplash.\nconst article = $('Parse Edited Article').first().json;\nconst pressResult = $input.first().json;\n\n// PostgREST returns an array\nconst photos = Array.isArray(pressResult) ? pressResult : [];\n\nif (photos.length > 0) {\n  const photo = photos[0];\n  return [{\n    json: {\n      ...article,\n      cover_image_url: photo.url,\n      cover_image_alt: photo.alt_text || article.title,\n      cover_image_credit: photo.credit,\n      has_cover: true\n    }\n  }];\n}\n\nreturn [{ json: { ...article, has_cover: false } }];"
+      },
+      "id": "press-photo-merge",
+      "name": "Merge Press Photo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3520, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            { "value1": "={{ $json.has_cover }}", "value2": true }
+          ]
+        }
+      },
+      "id": "has-press-photo",
+      "name": "Has Press Photo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3740, 100]
     },
     {
       "parameters": {
@@ -250,21 +293,21 @@
         "options": { "timeout": 10000 }
       },
       "id": "unsplash-cover",
-      "name": "Unsplash Cover Image",
+      "name": "Unsplash Fallback",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3300, 100],
-      "notes": "Sources a cover image from Unsplash based on article tags"
+      "position": [3960, 300],
+      "notes": "Fallback: sources a cover image from Unsplash if no press photo found"
     },
     {
       "parameters": {
-        "jsCode": "// Merge Unsplash result with article data\nconst article = $('Parse Edited Article').first().json;\nconst unsplash = $input.first().json;\n\nconst photo = unsplash.results?.[0];\n\nif (photo) {\n  article.cover_image_url = photo.urls?.regular || photo.urls?.full;\n  article.cover_image_alt = photo.alt_description || article.title;\n  article.cover_image_credit = `Photo by ${photo.user?.name} on Unsplash`;\n}\n\nreturn [{ json: article }];"
+        "jsCode": "// Merge Unsplash result with article data\nconst article = $('Merge Press Photo').first().json;\nconst unsplash = $input.first().json;\n\nconst photo = unsplash.results?.[0];\n\nif (photo) {\n  article.cover_image_url = photo.urls?.regular || photo.urls?.full;\n  article.cover_image_alt = photo.alt_description || article.title;\n  article.cover_image_credit = `Photo by ${photo.user?.name} on Unsplash`;\n}\n\nreturn [{ json: article }];"
       },
-      "id": "merge-cover",
-      "name": "Merge Cover Image",
+      "id": "merge-unsplash",
+      "name": "Merge Unsplash Cover",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3520, 100]
+      "position": [4180, 300]
     },
     {
       "parameters": {
@@ -284,7 +327,7 @@
       "name": "Publish to Supabase",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3740, 100],
+      "position": [4400, 100],
       "notes": "Inserts the finished article via the publish API"
     },
     {
@@ -383,15 +426,31 @@
     },
     "Parse Edited Article": {
       "main": [
-        [{ "node": "Unsplash Cover Image", "type": "main", "index": 0 }]
+        [{ "node": "Check Press Photos", "type": "main", "index": 0 }]
       ]
     },
-    "Unsplash Cover Image": {
+    "Check Press Photos": {
       "main": [
-        [{ "node": "Merge Cover Image", "type": "main", "index": 0 }]
+        [{ "node": "Merge Press Photo", "type": "main", "index": 0 }]
       ]
     },
-    "Merge Cover Image": {
+    "Merge Press Photo": {
+      "main": [
+        [{ "node": "Has Press Photo?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Has Press Photo?": {
+      "main": [
+        [{ "node": "Publish to Supabase", "type": "main", "index": 0 }],
+        [{ "node": "Unsplash Fallback", "type": "main", "index": 0 }]
+      ]
+    },
+    "Unsplash Fallback": {
+      "main": [
+        [{ "node": "Merge Unsplash Cover", "type": "main", "index": 0 }]
+      ]
+    },
+    "Merge Unsplash Cover": {
       "main": [
         [{ "node": "Publish to Supabase", "type": "main", "index": 0 }]
       ]

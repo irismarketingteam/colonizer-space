@@ -19,6 +19,7 @@ CREATE TABLE articles (
   )),
   seo_title TEXT,
   seo_description TEXT,
+  seo_keyword TEXT,
   tags TEXT[] DEFAULT '{}',
   source_urls TEXT[] DEFAULT '{}',
   reading_time_min INTEGER,
@@ -52,6 +53,32 @@ CREATE TABLE pipeline_runs (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Press photo library (brand media kits)
+CREATE TABLE press_photos (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  brand TEXT NOT NULL,
+  url TEXT NOT NULL,
+  thumbnail_url TEXT,
+  alt_text TEXT,
+  credit TEXT NOT NULL,
+  tags TEXT[] DEFAULT '{}',
+  mission TEXT,
+  vehicle TEXT,
+  width INTEGER,
+  height INTEGER,
+  source_page TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX press_photos_brand ON press_photos(brand);
+CREATE INDEX press_photos_tags ON press_photos USING gin(tags);
+
+ALTER TABLE press_photos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read press photos" ON press_photos
+  FOR SELECT USING (true);
+CREATE POLICY "Auth all press photos" ON press_photos
+  FOR ALL USING (auth.role() = 'authenticated');
 
 -- Newsletter subscribers
 CREATE TABLE subscribers (
