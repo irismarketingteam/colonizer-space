@@ -43,6 +43,7 @@
             { "name": "Authorization", "value": "Bearer YOUR_PIPELINE_SECRET" }
           ]
         },
+        "method": "POST",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ source_url: $json.link, source_title: $json.title, source_domain: $json.source, status: 'discovered' }) }}",
