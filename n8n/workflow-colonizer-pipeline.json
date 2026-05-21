@@ -1,5 +1,5 @@
 {
-  "name": "Colonizer \u2014 Content Pipeline",
+  "name": "Colonizer — Content Pipeline",
   "nodes": [
     {
       "parameters": {
@@ -74,11 +74,11 @@
         880,
         300
       ],
-      "notes": "POST to pipeline tracking \u2014 logs each discovered story"
+      "notes": "POST to pipeline tracking — logs each discovered story"
     },
     {
       "parameters": {
-        "jsCode": "const rss = $('Parse & Filter Age').first().json;\nreturn [{\n  json: {\n    title: rss.title,\n    link: rss.link,\n    source: rss.source,\n    snippet: rss.snippet,\n    pipeline_run_id: $input.first().json.id\n  }\n}];"
+        "jsCode": "const rss = $('Parse & Filter Age').first().json;\nconst pipelineId = $input.first().json.id;\n\nconst systemPrompt = `You are the editorial filter for colonizer.space, a publication focused on humans living and working in space. Score each story 0.0-1.0 for relevance.\n\nSCORE HIGH (0.7-1.0):\n- Space station construction/operations/commercial stations\n- Lunar/Mars surface habitat design, construction, ISRU\n- Space tourism milestones (bookings, flights, hotels)\n- Launch vehicle developments directly enabling colonization\n- In-space manufacturing, data centers, infrastructure\n- Space economy: funding, contracts, commercial milestones\n- Policy/regulation directly affecting commercial space settlement\n- Life support, radiation protection, closed-loop systems\n\nSCORE LOW (0.0-0.3):\n- Pure astronomy/astrophysics with no settlement angle\n- Earth-observation satellite launches (routine)\n- Military/classified programs (unless dual-use)\n\nSCORE MEDIUM (0.4-0.6):\n- Rocket launches (routine but from key players)\n- NASA budget/policy (indirect enabler)\n\nReturn JSON: { \"score\": 0.85, \"reasoning\": \"...\", \"suggested_section\": \"moon|mars|orbit|rockets|tech|economy|players\", \"suggested_angle\": \"brief phrase\" }`;\n\nreturn [{\n  json: {\n    requestBody: {\n      model: 'claude-sonnet-4-20250514',\n      max_tokens: 1024,\n      system: systemPrompt,\n      messages: [{\n        role: 'user',\n        content: `Score this story for colonizer.space relevance:\\n\\nTitle: ${rss.title}\\nSource: ${rss.source}\\nURL: ${rss.link}\\nSnippet: ${rss.snippet}`\n      }]\n    },\n    pipeline_run_id: pipelineId\n  }\n}];"
       },
       "id": "prepare-filter",
       "name": "Prepare Filter Input",
@@ -107,7 +107,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 1024,\n  \"system\": \"You are the editorial filter for colonizer.space, a publication focused on humans living and working in space. Score each story 0.0\u20131.0 for relevance.\\n\\nSCORE HIGH (0.7\u20131.0):\\n- Space station construction/operations/commercial stations\\n- Lunar/Mars surface habitat design, construction, ISRU\\n- Space tourism milestones (bookings, flights, hotels)\\n- Launch vehicle developments directly enabling colonization\\n- In-space manufacturing, data centers, infrastructure\\n- Space economy: funding, contracts, commercial milestones\\n- Policy/regulation directly affecting commercial space settlement\\n- Life support, radiation protection, closed-loop systems\\n\\nSCORE LOW (0.0\u20130.3):\\n- Pure astronomy/astrophysics with no settlement angle\\n- Earth-observation satellite launches (routine)\\n- Military/classified programs (unless dual-use)\\n\\nSCORE MEDIUM (0.4\u20130.6):\\n- Rocket launches (routine but from key players)\\n- NASA budget/policy (indirect enabler)\\n\\nReturn JSON: { \\\"score\\\": 0.85, \\\"reasoning\\\": \\\"...\\\", \\\"suggested_section\\\": \\\"moon|mars|orbit|rockets|tech|economy|players\\\", \\\"suggested_angle\\\": \\\"brief phrase\\\" }\",\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Score this story for colonizer.space relevance:\\n\\nTitle: {{ $json.title }}\\nSource: {{ $json.source }}\\nURL: {{ $json.link }}\\nSnippet: {{ $json.snippet }}\"\n  }]\n}",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
         "options": {
           "timeout": 30000
         },
@@ -182,7 +182,7 @@
         1760,
         500
       ],
-      "notes": "Story didn't meet relevance threshold \u2014 log and stop"
+      "notes": "Story didn't meet relevance threshold — log and stop"
     },
     {
       "parameters": {
@@ -203,7 +203,7 @@
         "method": "PATCH"
       },
       "id": "log-drafting",
-      "name": "Log \u2192 Drafting",
+      "name": "Log → Drafting",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -243,48 +243,14 @@
     },
     {
       "parameters": {
-        "url": "https://api.anthropic.com/v1/messages",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-key",
-              "value": "YOUR_ANTHROPIC_API_KEY"
-            },
-            {
-              "name": "anthropic-version",
-              "value": "2023-06-01"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 4096,\n  \"system\": \"You are the staff writer for colonizer.space.\\n\\nVOICE: Authoritative, technical, forward-leaning. You write like a Bloomberg space-desk reporter with an engineering background. No hype words. No hedging. State facts. Analyze implications. Be specific about timelines, numbers, players.\\n\\nSTRUCTURE:\\n- Headline: Declarative, specific, 6\u201312 words. No clickbait.\\n- Subtitle: One sentence expanding the headline.\\n- Lede: The news, first sentence. What happened, who did it, why it matters.\\n- Context: 2\u20133 paragraphs of background. What preceded this. Where it fits.\\n- Analysis: 2\u20133 paragraphs. What this means for the colonization timeline. What it enables or blocks. Who benefits.\\n- Forward look: 1 paragraph. What to watch next.\\n\\nLENGTH: 500\u2013800 words. This is a hard requirement. Count carefully.\\n\\nLINK REQUIREMENTS (mandatory):\\n- Include exactly 1 internal link to a related topic on colonizer.space (format: [anchor text](https://colonizer.space/section/slug)). Pick a section that relates to the story (e.g., https://colonizer.space/rockets, https://colonizer.space/orbit).\\n- Include exactly 1 external link to the original source article being covered. Place it naturally in the context section.\\n\\nSEO:\\n- Identify a primary keyword (2-4 words) the article should target.\\n- Include the keyword in the title, first paragraph, and at least one heading.\\n- Set seo_keyword in the output JSON.\\n\\nOUTPUT FORMAT (strict JSON, no markdown wrapping):\\n{\\n  \\\"title\\\": \\\"...\\\",\\n  \\\"subtitle\\\": \\\"...\\\",\\n  \\\"section\\\": \\\"moon|mars|orbit|rockets|tech|economy|players\\\",\\n  \\\"body_md\\\": \\\"... (full markdown article) ...\\\",\\n  \\\"excerpt\\\": \\\"... (160 chars for meta description) ...\\\",\\n  \\\"tags\\\": [\\\"tag1\\\", \\\"tag2\\\"],\\n  \\\"suggested_slug\\\": \\\"slug-here\\\",\\n  \\\"reading_time_min\\\": 5,\\n  \\\"source_urls\\\": [\\\"https://...\\\"],\\n  \\\"seo_keyword\\\": \\\"primary keyword phrase\\\"\\n}\",\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Write a colonizer.space article based on this source material.\\n\\nSource title: {{ $json.original_title }}\\nSource URL: {{ $json.original_url }}\\nSuggested section: {{ $json.suggested_section }}\\nSuggested angle: {{ $json.suggested_angle }}\\n\\nSource text:\\n{{ $json.source_text }}\"\n  }]\n}",
-        "options": {
-          "timeout": 60000
-        },
-        "method": "POST"
+        "jsCode": "const d = $input.first().json;\n\nconst systemPrompt = \"You are the staff writer for colonizer.space.\\n\\nVOICE: Authoritative, technical, forward-leaning. You write like a Bloomberg space-desk reporter with an engineering background. No hype words. No hedging. State facts. Analyze implications. Be specific about timelines, numbers, players.\\n\\nSTRUCTURE:\\n- Headline: Declarative, specific, 6-12 words. No clickbait.\\n- Subtitle: One sentence expanding the headline.\\n- Lede: The news, first sentence. What happened, who did it, why it matters.\\n- Context: 2-3 paragraphs of background. What preceded this. Where it fits.\\n- Analysis: 2-3 paragraphs. What this means for the colonization timeline. What it enables or blocks. Who benefits.\\n- Forward look: 1 paragraph. What to watch next.\\n\\nLENGTH: 500-800 words. This is a hard requirement. Count carefully.\\n\\nLINK REQUIREMENTS (mandatory):\\n- Include exactly 1 internal link to a related topic on colonizer.space (format: [anchor text](https://colonizer.space/section/slug)). Pick a section that relates to the story (e.g., https://colonizer.space/rockets, https://colonizer.space/orbit).\\n- Include exactly 1 external link to the original source article being covered. Place it naturally in the context section.\\n\\nSEO:\\n- Identify a primary keyword (2-4 words) the article should target.\\n- Include the keyword in the title, first paragraph, and at least one heading.\\n- Set seo_keyword in the output JSON.\\n\\nOUTPUT FORMAT (strict JSON, no markdown wrapping):\\n{\\n  \\\"title\\\": \\\"...\\\",\\n  \\\"subtitle\\\": \\\"...\\\",\\n  \\\"section\\\": \\\"moon|mars|orbit|rockets|tech|economy|players\\\",\\n  \\\"body_md\\\": \\\"... (full markdown article) ...\\\",\\n  \\\"excerpt\\\": \\\"... (160 chars for meta description) ...\\\",\\n  \\\"tags\\\": [\\\"tag1\\\", \\\"tag2\\\"],\\n  \\\"suggested_slug\\\": \\\"slug-here\\\",\\n  \\\"reading_time_min\\\": 5,\\n  \\\"source_urls\\\": [\\\"https://...\\\"],\\n  \\\"seo_keyword\\\": \\\"primary keyword phrase\\\"\\n}\";\n\nreturn [{\n  json: {\n    requestBody: {\n      model: 'claude-sonnet-4-20250514',\n      max_tokens: 4096,\n      system: systemPrompt,\n      messages: [{\n        role: 'user',\n        content: `Write a colonizer.space article based on this source material.\\n\\nSource title: ${d.original_title}\\nSource URL: ${d.original_url}\\nSuggested section: ${d.suggested_section}\\nSuggested angle: ${d.suggested_angle}\\n\\nSource text:\\n${d.source_text}`\n      }]\n    },\n    pipeline_run_id: d.pipeline_run_id\n  }\n}];"
       },
-      "id": "writer-agent",
-      "name": "Writer Agent (Claude)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        2420,
-        100
-      ],
-      "notes": "Claude writes the full article from source material"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Parse writer output\nconst response = $input.first().json;\nconst content = response.content?.[0]?.text || '{}';\n\nlet article;\ntry {\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  article = JSON.parse(jsonMatch ? jsonMatch[0] : content);\n} catch (e) {\n  throw new Error('Failed to parse writer output: ' + e.message);\n}\n\nreturn [{\n  json: {\n    ...article,\n    pipeline_run_id: $('Extract Source Text').first().json.pipeline_run_id\n  }\n}];"
-      },
-      "id": "parse-draft",
-      "name": "Parse Draft",
+      "id": "prepare-writer",
+      "name": "Prepare Writer Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2640,
+        2420,
         100
       ]
     },
@@ -306,7 +272,67 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 4096,\n  \"system\": \"You are the senior editor at colonizer.space. Review and polish this draft.\\n\\nCHECK:\\n1. Factual claims match source material (source URLs provided)\\n2. No hallucinated quotes, dates, numbers, or names\\n3. Headline is specific and declarative\\n4. Lede delivers the news in sentence one\\n5. No filler phrases: \\\"it remains to be seen\\\", \\\"only time will tell\\\", \\\"in a move that could\\\", \\\"exciting development\\\"\\n6. Technical terms used correctly\\n7. SEO: title contains the seo_keyword, excerpt is compelling, keyword appears in first paragraph and at least one heading\\n8. Reading time estimate is accurate (avg 238 wpm)\\n\\nQUALITY GATES (must pass or flag for review):\\n- Word count MUST be 500-800. If outside range, trim or expand.\\n- MUST contain exactly 1 internal link to colonizer.space (any section page or article). If missing, add one.\\n- MUST contain exactly 1 external link to the source article. If missing, add one.\\n- seo_keyword must be set and present in title + body.\\n\\nOUTPUT: Return the complete revised article in the same JSON format. Include seo_keyword field. Add an \\\"editor_notes\\\" field with any flags for human review. Set status to \\\"review\\\" if significant issues found, \\\"scheduled\\\" if clean.\",\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Edit this article draft:\\n\\n{{ JSON.stringify($json) }}\"\n  }]\n}",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
+        "options": {
+          "timeout": 60000
+        },
+        "method": "POST"
+      },
+      "id": "writer-agent",
+      "name": "Writer Agent (Claude)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        100
+      ],
+      "notes": "Claude writes the full article from source material"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse writer output\nconst response = $input.first().json;\nconst content = response.content?.[0]?.text || '{}';\n\nlet article;\ntry {\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  article = JSON.parse(jsonMatch ? jsonMatch[0] : content);\n} catch (e) {\n  throw new Error('Failed to parse writer output: ' + e.message);\n}\n\nreturn [{\n  json: {\n    ...article,\n    pipeline_run_id: $('Extract Source Text').first().json.pipeline_run_id\n  }\n}];"
+      },
+      "id": "parse-draft",
+      "name": "Parse Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const draft = $input.first().json;\n\nconst systemPrompt = \"You are the senior editor at colonizer.space. Review and polish this draft.\\n\\nCHECK:\\n1. Factual claims match source material (source URLs provided)\\n2. No hallucinated quotes, dates, numbers, or names\\n3. Headline is specific and declarative\\n4. Lede delivers the news in sentence one\\n5. No filler phrases: \\\"it remains to be seen\\\", \\\"only time will tell\\\", \\\"in a move that could\\\", \\\"exciting development\\\"\\n6. Technical terms used correctly\\n7. SEO: title contains the seo_keyword, excerpt is compelling, keyword appears in first paragraph and at least one heading\\n8. Reading time estimate is accurate (avg 238 wpm)\\n\\nQUALITY GATES (must pass or flag for review):\\n- Word count MUST be 500-800. If outside range, trim or expand.\\n- MUST contain exactly 1 internal link to colonizer.space (any section page or article). If missing, add one.\\n- MUST contain exactly 1 external link to the source article. If missing, add one.\\n- seo_keyword must be set and present in title + body.\\n\\nOUTPUT: Return the complete revised article in the same JSON format. Include seo_keyword field. Add an \\\"editor_notes\\\" field with any flags for human review. Set status to \\\"review\\\" if significant issues found, \\\"scheduled\\\" if clean.\";\n\nreturn [{\n  json: {\n    requestBody: {\n      model: 'claude-sonnet-4-20250514',\n      max_tokens: 4096,\n      system: systemPrompt,\n      messages: [{\n        role: 'user',\n        content: 'Edit this article draft:\\n\\n' + JSON.stringify(draft)\n      }]\n    }\n  }\n}];"
+      },
+      "id": "prepare-editor",
+      "name": "Prepare Editor Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3280,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "YOUR_ANTHROPIC_API_KEY"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
         "options": {
           "timeout": 60000
         },
@@ -317,7 +343,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2860,
+        3500,
         100
       ],
       "notes": "Claude reviews, polishes, fact-checks the draft"
@@ -496,7 +522,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Deduplication: check if source_url already exists in pipeline_runs\nconst url = $input.first().json.link;\nconst checkUrl = `https://gyggbhepbfocvaeyemuu.supabase.co/rest/v1/pipeline_runs?source_url=eq.${encodeURIComponent(url)}&select=id&limit=1`;\n\n// We'll use a simple flag \u2014 the HTTP dedup check happens in the next node\nreturn [{ json: { ...$input.first().json, needs_dedup_check: true } }];"
+        "jsCode": "// Deduplication: check if source_url already exists in pipeline_runs\nconst url = $input.first().json.link;\nconst checkUrl = `https://gyggbhepbfocvaeyemuu.supabase.co/rest/v1/pipeline_runs?source_url=eq.${encodeURIComponent(url)}&select=id&limit=1`;\n\n// We'll use a simple flag — the HTTP dedup check happens in the next node\nreturn [{ json: { ...$input.first().json, needs_dedup_check: true } }];"
       },
       "id": "dedup-prep",
       "name": "Prepare Dedup",
@@ -506,7 +532,7 @@
         880,
         100
       ],
-      "notes": "Placeholder \u2014 full dedup via Supabase check can be added"
+      "notes": "Placeholder — full dedup via Supabase check can be added"
     }
   ],
   "connections": {
@@ -602,7 +628,7 @@
       "main": [
         [
           {
-            "node": "Log \u2192 Drafting",
+            "node": "Log → Drafting",
             "type": "main",
             "index": 0
           }
@@ -616,7 +642,7 @@
         ]
       ]
     },
-    "Log \u2192 Drafting": {
+    "Log → Drafting": {
       "main": [
         [
           {
@@ -642,7 +668,7 @@
       "main": [
         [
           {
-            "node": "Writer Agent (Claude)",
+            "node": "Prepare Writer Input",
             "type": "main",
             "index": 0
           }
@@ -664,7 +690,7 @@
       "main": [
         [
           {
-            "node": "Editor Agent (Claude)",
+            "node": "Prepare Editor Input",
             "type": "main",
             "index": 0
           }
@@ -754,6 +780,28 @@
           }
         ]
       ]
+    },
+    "Prepare Writer Input": {
+      "main": [
+        [
+          {
+            "node": "Writer Agent (Claude)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Editor Input": {
+      "main": [
+        [
+          {
+            "node": "Editor Agent (Claude)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -768,6 +816,6 @@
     }
   ],
   "meta": {
-    "notes": "Colonizer.space content pipeline: Scout (RSS) \u2192 Filter (Claude) \u2192 Write (Claude) \u2192 Edit (Claude) \u2192 Cover (Unsplash) \u2192 Publish (Supabase). Runs every 30 min. Requires env vars: PIPELINE_SECRET, ANTHROPIC_API_KEY, UNSPLASH_ACCESS_KEY, SUPABASE_URL."
+    "notes": "Colonizer.space content pipeline: Scout (RSS) → Filter (Claude) → Write (Claude) → Edit (Claude) → Cover (Unsplash) → Publish (Supabase). Runs every 30 min. Requires env vars: PIPELINE_SECRET, ANTHROPIC_API_KEY, UNSPLASH_ACCESS_KEY, SUPABASE_URL."
   }
 }
