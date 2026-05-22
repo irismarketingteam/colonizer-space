@@ -122,7 +122,13 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
         "options": {
-          "timeout": 30000
+          "timeout": 30000,
+          "batching": {
+            "batch": {
+              "batchSize": 2,
+              "batchInterval": 2000
+            }
+          }
         },
         "method": "POST"
       },
@@ -138,7 +144,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Parse each Filter Agent response; mark passes_filter per item\nconst MIN_SCORE = 0.6;\nconst responses = $input.all();\nconst prepInputs = $('Prepare Filter Input').all();\nconst logResponses = $('Log Discovery').all();\n\nreturn responses.map((respItem, i) => {\n  const content = respItem.json.content?.[0]?.text || '{}';\n  let parsed;\n  try {\n    const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n    parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);\n  } catch (e) {\n    parsed = { score: 0, reasoning: 'Failed to parse filter response' };\n  }\n\n  const log = logResponses[i]?.json || {};\n  const prep = prepInputs[i]?.json || {};\n\n  return {\n    json: {\n      ...parsed,\n      original_title: log.source_title,\n      original_url: log.source_url,\n      pipeline_run_id: prep.pipeline_run_id || log.id,\n      passes_filter: parsed.score >= MIN_SCORE\n    }\n  };\n});"
+        "jsCode": "// Parse each Filter Agent response, sort by score, mark TOP N as passing.\nconst MIN_SCORE = 0.6;\nconst MAX_DRAFTS_PER_BATCH = 2;\n\nconst responses = $input.all();\nconst prepInputs = $('Prepare Filter Input').all();\nconst logResponses = $('Log Discovery').all();\n\nconst items = responses.map((respItem, i) => {\n  const content = respItem.json.content?.[0]?.text || '{}';\n  let parsed;\n  try {\n    const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n    parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);\n  } catch (e) {\n    parsed = { score: 0, reasoning: 'Failed to parse filter response' };\n  }\n\n  const log = logResponses[i]?.json || {};\n  const prep = prepInputs[i]?.json || {};\n\n  return {\n    json: {\n      ...parsed,\n      original_title: log.source_title,\n      original_url: log.source_url,\n      pipeline_run_id: prep.pipeline_run_id || log.id,\n      score: parsed.score || 0\n    }\n  };\n});\n\n// Sort by score descending, then mark the top N (above MIN_SCORE) as passing\nconst sorted = [...items].sort((a, b) => (b.json.score || 0) - (a.json.score || 0));\nconst passingIds = new Set(\n  sorted\n    .filter(it => (it.json.score || 0) >= MIN_SCORE)\n    .slice(0, MAX_DRAFTS_PER_BATCH)\n    .map(it => it.json.pipeline_run_id)\n);\n\nfor (const item of items) {\n  item.json.passes_filter = passingIds.has(item.json.pipeline_run_id);\n}\n\nreturn items;"
       },
       "id": "parse-filter",
       "name": "Parse Filter Score",
@@ -228,7 +234,13 @@
       "parameters": {
         "url": "={{ $json.source_url }}",
         "options": {
-          "timeout": 15000
+          "timeout": 15000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1500
+            }
+          }
         }
       },
       "id": "fetch-source",
@@ -287,7 +299,13 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
         "options": {
-          "timeout": 60000
+          "timeout": 90000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 3000
+            }
+          }
         },
         "method": "POST"
       },
@@ -347,7 +365,13 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
         "options": {
-          "timeout": 60000
+          "timeout": 90000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 3000
+            }
+          }
         },
         "method": "POST"
       },
@@ -387,7 +411,13 @@
           ]
         },
         "options": {
-          "timeout": 5000
+          "timeout": 10000,
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 500
+            }
+          }
         }
       },
       "id": "press-photo-check",
@@ -464,7 +494,13 @@
           ]
         },
         "options": {
-          "timeout": 10000
+          "timeout": 10000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1000
+            }
+          }
         }
       },
       "id": "unsplash-cover",
