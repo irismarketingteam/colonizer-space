@@ -91,7 +91,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Build a Filter Agent request for EACH item that came through Log Discovery.\n// Pair the Log Discovery response (which has pipeline_run_id) with the upstream\n// RSS data (which has the snippet) by source_url.\nconst logResponses = $input.all();\nconst rssItems = $('Filter Recent Topics').all();\n\nconst rssByUrl = {};\nfor (const r of rssItems) {\n  rssByUrl[r.json.link] = r.json;\n}\n\nconst systemPrompt = `You are the editorial filter for colonizer.space, a publication focused on humans living and working in space. Score each story 0.0-1.0 for relevance.\n\nSCORE HIGH (0.7-1.0):\n- Space station construction/operations/commercial stations\n- Lunar/Mars surface habitat design, construction, ISRU\n- Space tourism milestones (bookings, flights, hotels)\n- Launch vehicle developments directly enabling colonization\n- In-space manufacturing, data centers, infrastructure\n- Space economy: funding, contracts, commercial milestones\n- Policy/regulation directly affecting commercial space settlement\n- Life support, radiation protection, closed-loop systems\n\nSCORE LOW (0.0-0.3):\n- Pure astronomy/astrophysics with no settlement angle\n- Earth-observation satellite launches (routine)\n- Military/classified programs (unless dual-use)\n\nSCORE MEDIUM (0.4-0.6):\n- Rocket launches (routine but from key players)\n- NASA budget/policy (indirect enabler)\n\nReturn JSON: { \"score\": 0.85, \"reasoning\": \"...\", \"suggested_section\": \"moon|mars|orbit|rockets|tech|economy|players\", \"suggested_angle\": \"brief phrase\" }`;\n\nreturn logResponses.map(logResp => {\n  const url = logResp.json.source_url;\n  const rss = rssByUrl[url] || {};\n  return {\n    json: {\n      requestBody: {\n        model: 'claude-sonnet-4-20250514',\n        max_tokens: 1024,\n        system: systemPrompt,\n        messages: [{\n          role: 'user',\n          content: `Score this story for colonizer.space relevance:\\n\\nTitle: ${rss.title || logResp.json.source_title}\\nSource: ${rss.source || logResp.json.source_domain}\\nURL: ${url}\\nSnippet: ${rss.snippet || ''}`\n        }]\n      },\n      pipeline_run_id: logResp.json.id\n    }\n  };\n});"
+        "jsCode": "// Build a Filter Agent request for EACH item that came through Log Discovery.\n// Pair the Log Discovery response (which has pipeline_run_id) with the upstream\n// RSS data (which has the snippet) by source_url.\nconst logResponses = $input.all();\nconst rssItems = $('Filter Recent Topics').all();\n\nconst rssByUrl = {};\nfor (const r of rssItems) {\n  rssByUrl[r.json.link] = r.json;\n}\n\nconst systemPrompt = `You are the editorial filter for colonizer.space, a publication focused on humans living and working in space. Score each story 0.0-1.0 for relevance.\n\nSCORE HIGH (0.7-1.0):\n- Space station construction/operations/commercial stations\n- Lunar/Mars surface habitat design, construction, ISRU\n- Space tourism milestones (bookings, flights, hotels)\n- Launch vehicle developments directly enabling colonization\n- In-space manufacturing, data centers, infrastructure\n- Space economy: funding, contracts, commercial milestones\n- Policy/regulation directly affecting commercial space settlement\n- Life support, radiation protection, closed-loop systems\n\nSCORE LOW (0.0-0.3):\n- Pure astronomy/astrophysics with no settlement angle\n- Earth-observation satellite launches (routine)\n- Military/classified programs (unless dual-use)\n\nSCORE MEDIUM (0.4-0.6):\n- Rocket launches (routine but from key players)\n- NASA budget/policy (indirect enabler)\n\nReturn JSON: { \"score\": 0.85, \"reasoning\": \"...\", \"suggested_section\": \"moon|mars|orbit|rockets|tech|economy|players\", \"suggested_angle\": \"brief phrase\" }`;\n\nreturn logResponses.map(logResp => {\n  const url = logResp.json.source_url;\n  const rss = rssByUrl[url] || {};\n  return {\n    json: {\n      requestBody: {\n        model: 'claude-haiku-4-5-20251001',\n        max_tokens: 1024,\n        system: systemPrompt,\n        messages: [{\n          role: 'user',\n          content: `Score this story for colonizer.space relevance:\\n\\nTitle: ${rss.title || logResp.json.source_title}\\nSource: ${rss.source || logResp.json.source_domain}\\nURL: ${url}\\nSnippet: ${rss.snippet || ''}`\n        }]\n      },\n      pipeline_run_id: logResp.json.id\n    }\n  };\n});"
       },
       "id": "prepare-filter",
       "name": "Prepare Filter Input",
@@ -125,8 +125,8 @@
           "timeout": 30000,
           "batching": {
             "batch": {
-              "batchSize": 2,
-              "batchInterval": 2000
+              "batchSize": 5,
+              "batchInterval": 1000
             }
           }
         },
@@ -303,7 +303,7 @@
           "batching": {
             "batch": {
               "batchSize": 1,
-              "batchInterval": 3000
+              "batchInterval": 6000
             }
           }
         },
@@ -369,7 +369,7 @@
           "batching": {
             "batch": {
               "batchSize": 1,
-              "batchInterval": 3000
+              "batchInterval": 6000
             }
           }
         },
