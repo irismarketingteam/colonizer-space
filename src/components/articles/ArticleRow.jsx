@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { formatTimeAgo } from '../../lib/format'
+import { getCoverImage, getCoverAlt } from '../../lib/coverImage'
 
 export default function ArticleRow({ article }) {
   const url = `/${article.section}/${article.slug}`
@@ -26,16 +27,14 @@ export default function ArticleRow({ article }) {
             {article.reading_time_min && <span>{article.reading_time_min} min read</span>}
           </div>
         </div>
-        {article.cover_image_url && (
-          <Link to={url} className="hidden sm:block shrink-0">
-            <img
-              src={article.cover_image_url}
-              alt={article.cover_image_alt || ''}
-              className="w-32 h-20 object-cover mix-blend-luminosity group-hover:mix-blend-normal transition-all"
-              loading="lazy"
-            />
-          </Link>
-        )}
+        <Link to={url} className="hidden sm:block shrink-0">
+          <img
+            src={getCoverImage(article)}
+            alt={getCoverAlt(article)}
+            className="w-32 h-20 object-cover mix-blend-luminosity group-hover:mix-blend-normal transition-all"
+            loading="lazy"
+          />
+        </Link>
       </div>
     </article>
   )

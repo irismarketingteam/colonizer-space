@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 import { SECTIONS } from '../../lib/constants'
 import { renderMarkdown } from '../../lib/markdown'
+import MarkdownToolbar from './MarkdownToolbar'
 
 export default function ArticleEditor({ articleId = null, onSave, onCancel }) {
   const [form, setForm] = useState({
@@ -19,11 +20,13 @@ export default function ArticleEditor({ articleId = null, onSave, onCancel }) {
     status: 'draft',
     seo_title: '',
     seo_description: '',
+    seo_keyword: '',
   })
   const [preview, setPreview] = useState(false)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(!!articleId)
   const [error, setError] = useState('')
+  const bodyRef = useRef(null)
 
   useEffect(() => {
     if (articleId) loadArticle()
@@ -48,6 +51,7 @@ export default function ArticleEditor({ articleId = null, onSave, onCancel }) {
         status: data.status || 'draft',
         seo_title: data.seo_title || '',
         seo_description: data.seo_description || '',
+        seo_keyword: data.seo_keyword || '',
       })
     }
     setLoading(false)
@@ -82,6 +86,7 @@ export default function ArticleEditor({ articleId = null, onSave, onCancel }) {
       author: form.author,
       seo_title: form.seo_title || form.title,
       seo_description: form.seo_description || form.excerpt || null,
+      seo_keyword: form.seo_keyword || null,
       reading_time_min: Math.ceil((form.body_md.split(/\s+/).length) / 238),
     }
 
@@ -198,14 +203,21 @@ export default function ArticleEditor({ articleId = null, onSave, onCancel }) {
               />
             </Field>
 
-            <Field label={`Body (Markdown) — ${wordCount} words, ~${readingTime} min read`} required>
+            <Field label="Body (Markdown)" required>
+              <MarkdownToolbar
+                textareaRef={bodyRef}
+                value={form.body_md}
+                onChange={(v) => updateField('body_md', v)}
+              />
               <textarea
+                ref={bodyRef}
                 value={form.body_md}
                 onChange={(e) => updateField('body_md', e.target.value)}
                 placeholder="Write your article in Markdown..."
                 rows={20}
-                className="admin-input font-mono text-[0.85rem] leading-relaxed"
+                className="admin-input font-mono text-[0.85rem] leading-relaxed border-t-0"
               />
+              <ContentStats body={form.body_md} />
             </Field>
 
             <Field label="Excerpt (meta description)">
@@ -306,6 +318,19 @@ export default function ArticleEditor({ articleId = null, onSave, onCancel }) {
                 className="admin-input"
               />
             </Field>
+
+            <Field label="SEO Target Keyword">
+              <input
+                type="text"
+                value={form.seo_keyword}
+                onChange={(e) => updateField('seo_keyword', e.target.value)}
+                placeholder="primary keyword to target"
+                className="admin-input"
+              />
+              {form.seo_keyword && (
+                <KeywordPresence keyword={form.seo_keyword} title={form.title} body={form.body_md} excerpt={form.excerpt} />
+              )}
+            </Field>
           </div>
         </div>
       )}
@@ -321,5 +346,48 @@ function Field({ label, required, children }) {
       </span>
       {children}
     </label>
+  )
+}
+
+function ContentStats({ body }) {
+  const words = body.trim() ? body.trim().split(/\s+/).length : 0
+  const readMin = Math.ceil(words / 238)
+  const internalLinks = (body.match(/\]\(https?:\/\/colonizer\.space[^)]*\)/g) || []).length
+  const externalLinks = (body.match(/\]\(https?:\/\/(?!colonizer\.space)[^)]*\)/g) || []).length
+  const allLinks = (body.match(/\]\(https?:\/\/[^)]*\)/g) || []).length
+
+  const wordColor = words >= 500 && words <= 800 ? 'text-signal-live' : words > 0 ? 'text-signal-alert' : 'text-text-tertiary'
+  const intColor = internalLinks >= 1 ? 'text-signal-live' : 'text-text-tertiary'
+  const extColor = externalLinks >= 1 ? 'text-signal-live' : 'text-text-tertiary'
+
+  return (
+    <div className="flex flex-wrap gap-4 mt-1.5 font-mono text-micro">
+      <span className={wordColor}>{words} words (~{readMin} min)</span>
+      <span className="text-text-tertiary">Target: 500-800</span>
+      <span className={intColor}>Internal links: {internalLinks}</span>
+      <span className={extColor}>External links: {externalLinks}</span>
+    </div>
+  )
+}
+
+function KeywordPresence({ keyword, title, body, excerpt }) {
+  const kw = keyword.toLowerCase()
+  const inTitle = title.toLowerCase().includes(kw)
+  const inBody = body.toLowerCase().includes(kw)
+  const inExcerpt = (excerpt || '').toLowerCase().includes(kw)
+  const bodyCount = (body.toLowerCase().match(new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length
+
+  return (
+    <div className="mt-1.5 font-mono text-micro space-y-0.5">
+      <div className={inTitle ? 'text-signal-live' : 'text-signal-alert'}>
+        Title: {inTitle ? 'present' : 'missing'}
+      </div>
+      <div className={inBody ? 'text-signal-live' : 'text-signal-alert'}>
+        Body: {bodyCount}x {bodyCount === 0 ? '(add keyword)' : bodyCount > 8 ? '(may be over-optimized)' : ''}
+      </div>
+      <div className={inExcerpt ? 'text-signal-live' : 'text-signal-alert'}>
+        Excerpt: {inExcerpt ? 'present' : 'missing'}
+      </div>
+    </div>
   )
 }

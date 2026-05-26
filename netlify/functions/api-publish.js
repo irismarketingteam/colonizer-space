@@ -73,9 +73,24 @@ export default async function handler(req) {
     return Response.json({ error: `Invalid section: ${section}. Must be one of: ${VALID_SECTIONS.join(', ')}` }, { status: 400 })
   }
 
-  // Build article record
+  // Build article record — ensure slug is unique by appending -2, -3, etc. if needed
+  let baseSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '')
+  let finalSlug = baseSlug
+  let slugSuffix = 1
+  while (true) {
+    const existing = await supaFetch(`/articles?slug=eq.${finalSlug}&select=id`)
+    if (!existing.ok) break
+    const rows = await existing.json()
+    if (rows.length === 0) break
+    slugSuffix += 1
+    finalSlug = `${baseSlug}-${slugSuffix}`
+    if (slugSuffix > 50) {
+      return Response.json({ error: 'Could not generate unique slug after 50 attempts' }, { status: 500 })
+    }
+  }
+
   const article = {
-    slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, ''),
+    slug: finalSlug,
     title,
     subtitle: body.subtitle || null,
     section,
@@ -88,6 +103,7 @@ export default async function handler(req) {
     status: body.status || 'review',
     seo_title: body.seo_title || title,
     seo_description: body.seo_description || body.excerpt || null,
+    seo_keyword: body.seo_keyword || null,
     tags: body.tags || [],
     source_urls: body.source_urls || [],
     reading_time_min: body.reading_time_min || Math.ceil((body_md.split(/\s+/).length) / 238),

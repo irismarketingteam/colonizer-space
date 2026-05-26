@@ -7,12 +7,14 @@ import ReviewQueue from '../components/admin/ReviewQueue'
 import ArticleList from '../components/admin/ArticleList'
 import ArticleEditor from '../components/admin/ArticleEditor'
 import PipelineMonitor from '../components/admin/PipelineMonitor'
+import PressPhotos from '../components/admin/PressPhotos'
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'review', label: 'Review' },
   { id: 'articles', label: 'Articles' },
   { id: 'pipeline', label: 'Pipeline' },
+  { id: 'photos', label: 'Photos' },
   { id: 'editor', label: '+ New' },
 ]
 
@@ -143,6 +145,7 @@ export default function AdminPage() {
           {activeTab === 'review' && <ReviewQueue onEdit={handleEdit} />}
           {activeTab === 'articles' && <ArticleList initialFilter={articleFilter} onEdit={handleEdit} />}
           {activeTab === 'pipeline' && <PipelineMonitor />}
+          {activeTab === 'photos' && <PressPhotos />}
           {activeTab === 'editor' && (
             <ArticleEditor
               articleId={editingId}

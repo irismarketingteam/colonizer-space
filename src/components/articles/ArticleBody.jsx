@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { renderMarkdown } from '../../lib/markdown'
 import { formatDate } from '../../lib/format'
+import { getCoverImage, getCoverAlt } from '../../lib/coverImage'
 
 export default function ArticleBody({ article }) {
   const html = useMemo(() => {
@@ -11,20 +12,18 @@ export default function ArticleBody({ article }) {
 
   return (
     <article>
-      {article.cover_image_url && (
-        <div className="relative w-full aspect-video mb-8">
-          <img
-            src={article.cover_image_url}
-            alt={article.cover_image_alt || article.title}
-            className="w-full h-full object-cover"
-          />
-          {article.cover_image_credit && (
-            <span className="absolute bottom-2 right-3 font-mono text-micro text-text-tertiary/60">
-              {article.cover_image_credit}
-            </span>
-          )}
-        </div>
-      )}
+      <div className="relative w-full aspect-video mb-8">
+        <img
+          src={getCoverImage(article)}
+          alt={getCoverAlt(article)}
+          className="w-full h-full object-cover"
+        />
+        {article.cover_image_credit && (
+          <span className="absolute bottom-2 right-3 font-mono text-micro text-text-tertiary/60">
+            {article.cover_image_credit}
+          </span>
+        )}
+      </div>
 
       <div className="reading-column px-[clamp(1rem,3vw,3rem)]">
         <div className="flex items-center gap-3 mb-4">

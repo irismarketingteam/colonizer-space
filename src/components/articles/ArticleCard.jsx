@@ -1,21 +1,20 @@
 import { Link } from 'react-router-dom'
 import { formatTimeAgo } from '../../lib/format'
+import { getCoverImage, getCoverAlt } from '../../lib/coverImage'
 
 export default function ArticleCard({ article, featured = false }) {
   const url = `/${article.section}/${article.slug}`
 
   return (
     <article className={`group border border-subtle hover:border-accent/20 transition-colors ${featured ? '' : ''}`}>
-      {article.cover_image_url && (
-        <Link to={url} className="block overflow-hidden">
-          <img
-            src={article.cover_image_url}
-            alt={article.cover_image_alt || article.title}
-            className="w-full aspect-video object-cover mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-500"
-            loading="lazy"
-          />
-        </Link>
-      )}
+      <Link to={url} className="block overflow-hidden">
+        <img
+          src={getCoverImage(article)}
+          alt={getCoverAlt(article)}
+          className="w-full aspect-video object-cover mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-500"
+          loading="lazy"
+        />
+      </Link>
       <div className="p-5">
         <div className="flex items-center gap-3 mb-3">
           <span className="section-tag">{article.section}</span>

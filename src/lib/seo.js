@@ -1,10 +1,11 @@
 import { SITE } from './constants'
+import { getCoverImage } from './coverImage'
 
 export function buildArticleMeta(article) {
   const title = article.seo_title || article.title
   const description = article.seo_description || article.excerpt || ''
   const url = `${SITE.url}/${article.section}/${article.slug}`
-  const image = article.cover_image_url || `${SITE.url}/og/${article.slug}.png`
+  const image = getCoverImage(article)
 
   return {
     title: `${title} — ${SITE.name}`,

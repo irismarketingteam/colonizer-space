@@ -58,7 +58,7 @@ export default function ArticlePage() {
             datePublished: meta.publishedAt,
             author: { '@type': 'Organization', name: SITE.name },
             publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
-            image: article.cover_image_url,
+            image: meta.image,
             articleSection: meta.section,
           })}
         </script>
