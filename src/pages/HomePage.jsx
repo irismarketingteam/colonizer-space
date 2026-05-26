@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import { useArticles, useLatestBySection } from '../hooks/useArticles'
 import { SECTIONS, SITE } from '../lib/constants'
 import { formatTimeAgo } from '../lib/format'
+import { getCoverImage, getCoverAlt } from '../lib/coverImage'
 import ArticleCard from '../components/articles/ArticleCard'
 import NewsletterCTA from '../components/newsletter/NewsletterCTA'
 
@@ -54,15 +55,13 @@ export default function HomePage() {
             <h2 className="font-mono text-micro uppercase tracking-widest text-text-secondary mb-8">Latest</h2>
             <div className="site-grid">
               <div className="col-span-12 md:col-span-7">
-                {latest.cover_image_url && (
-                  <Link to={`/${latest.section}/${latest.slug}`} className="block overflow-hidden mb-6">
-                    <img
-                      src={latest.cover_image_url}
-                      alt={latest.cover_image_alt || latest.title}
-                      className="w-full aspect-video object-cover hover:scale-[1.02] transition-transform duration-500"
-                    />
-                  </Link>
-                )}
+                <Link to={`/${latest.section}/${latest.slug}`} className="block overflow-hidden mb-6">
+                  <img
+                    src={getCoverImage(latest)}
+                    alt={getCoverAlt(latest)}
+                    className="w-full aspect-video object-cover hover:scale-[1.02] transition-transform duration-500"
+                  />
+                </Link>
               </div>
               <div className="col-span-12 md:col-span-5 flex flex-col justify-center">
                 <div className="flex items-center gap-3 mb-3">
@@ -128,16 +127,14 @@ function SectionArticleCard({ article }) {
   const url = `/${article.section}/${article.slug}`
   return (
     <article className="group">
-      {article.cover_image_url && (
-        <Link to={url} className="block overflow-hidden mb-3">
-          <img
-            src={article.cover_image_url}
-            alt={article.cover_image_alt || article.title}
-            className="w-full aspect-[3/2] object-cover mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-500"
-            loading="lazy"
-          />
-        </Link>
-      )}
+      <Link to={url} className="block overflow-hidden mb-3">
+        <img
+          src={getCoverImage(article)}
+          alt={getCoverAlt(article)}
+          className="w-full aspect-[3/2] object-cover mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-500"
+          loading="lazy"
+        />
+      </Link>
       <Link to={url}>
         <h4 className="font-display font-semibold text-text-primary group-hover:text-accent transition-colors text-[0.95rem] leading-snug mb-2">
           {article.title}
